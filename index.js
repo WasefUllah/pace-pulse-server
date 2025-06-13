@@ -8,7 +8,7 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.vpmsoqw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -30,13 +30,31 @@ async function run() {
 
     app.get("/upcomingmarathon", async (req, res) => {
       const marathons = await marathonCollection
-        .find({})
-        .sort({ startRegDate: 1 })
-        .limit(6)
+        .aggregate([{ $sample: { size: 6 } }])
         .toArray();
-console.log(marathons);
 
       res.send(marathons);
+    });
+    app.get("/allmarathons", async (req, res) => {
+      let query = {};
+      if (query) {
+        query = {
+          createdBy: req.query.email,
+        };
+      }
+      const result = await marathonCollection.find(query).toArray();
+
+      res.send(result);
+    });
+
+    app.get("/marathons/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const query = {
+        _id: new ObjectId(id),
+      };
+      const result = await marathonCollection.findOne(query);
+      res.send(result);
     });
 
     app.post("/marathon", async (req, res) => {
