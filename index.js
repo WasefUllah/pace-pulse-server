@@ -28,12 +28,23 @@ async function run() {
     const database = client.db("pace-pulse");
     const marathonCollection = database.collection("marathons");
 
+    app.get("/upcomingmarathon", async (req, res) => {
+      const marathons = await marathonCollection
+        .find({})
+        .sort({ startRegDate: 1 })
+        .limit(6)
+        .toArray();
+console.log(marathons);
+
+      res.send(marathons);
+    });
+
     app.post("/marathon", async (req, res) => {
       const marathon = req.body;
       // console.log(marathon);
       const result = await marathonCollection.insertOne(marathon);
-      console.log(result);
-      
+      // console.log(result);
+
       res.send(result);
     });
 
