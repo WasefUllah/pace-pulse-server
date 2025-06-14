@@ -100,6 +100,26 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/aggrigate", async (req, res) => {
+      const email = req.query.email;
+      const query = {
+        userEmail: email,
+      };
+      const result = await registrationCollection.find(query).toArray();
+      const marathonIds = result.map((reg) => reg.marathonId);
+      const marathons = [];
+      for (let index = 0; index < marathonIds.length; index++) {
+        const id = marathonIds[index]; // corrected variable name
+        const single = await marathonCollection.findOne({
+          _id: new ObjectId(id),
+        });
+        if (single) {
+          marathons.push(single);
+        }
+      }
+      res.send(marathons);
+    });
+
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
