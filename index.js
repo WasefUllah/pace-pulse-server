@@ -37,13 +37,41 @@ async function run() {
     });
     app.get("/allmarathons", async (req, res) => {
       let query = {};
-      if (query) {
+
+      if (req.query.email) {
         query = {
           createdBy: req.query.email,
         };
       }
+
       const result = await marathonCollection.find(query).toArray();
 
+      res.send(result);
+    });
+
+    app.put("/marathon/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const option = { upsert: true };
+      const updatedMarathon = req.body;
+      const updatedDoc = {
+        $set: updatedMarathon,
+      };
+      const result = await marathonCollection.updateOne(
+        filter,
+        updatedDoc,
+        option
+      );
+
+      res.send(result);
+    });
+
+    app.delete("/allmarathons/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const query = { _id: new ObjectId(id) };
+      const result = await marathonCollection.deleteOne(query);
+      console.log(result);
       res.send(result);
     });
 
@@ -54,6 +82,8 @@ async function run() {
         _id: new ObjectId(id),
       };
       const result = await marathonCollection.findOne(query);
+      // console.log(result);
+
       res.send(result);
     });
 
