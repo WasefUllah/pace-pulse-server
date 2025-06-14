@@ -27,25 +27,22 @@ async function run() {
 
     const database = client.db("pace-pulse");
     const marathonCollection = database.collection("marathons");
+    const registrationCollection = database.collection("registration");
 
     app.get("/upcomingmarathon", async (req, res) => {
       const marathons = await marathonCollection
         .aggregate([{ $sample: { size: 6 } }])
         .toArray();
-
       res.send(marathons);
     });
     app.get("/allmarathons", async (req, res) => {
       let query = {};
-
       if (req.query.email) {
         query = {
           createdBy: req.query.email,
         };
       }
-
       const result = await marathonCollection.find(query).toArray();
-
       res.send(result);
     });
 
@@ -62,13 +59,20 @@ async function run() {
         updatedDoc,
         option
       );
+      res.send(result);
+    });
 
+    app.patch("/marathon/increment/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await marathonCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $inc: { regCount: 1 } }
+      );
       res.send(result);
     });
 
     app.delete("/allmarathons/:id", async (req, res) => {
       const id = req.params.id;
-
       const query = { _id: new ObjectId(id) };
       const result = await marathonCollection.deleteOne(query);
       console.log(result);
@@ -77,33 +81,30 @@ async function run() {
 
     app.get("/marathons/:id", async (req, res) => {
       const id = req.params.id;
-
       const query = {
         _id: new ObjectId(id),
       };
       const result = await marathonCollection.findOne(query);
-      // console.log(result);
-
       res.send(result);
     });
 
     app.post("/marathon", async (req, res) => {
       const marathon = req.body;
-      // console.log(marathon);
       const result = await marathonCollection.insertOne(marathon);
-      // console.log(result);
-
       res.send(result);
     });
 
-    // Send a ping to confirm a successful connection
+    app.post("/registrations", async (req, res) => {
+      const registration = req.body;
+      const result = await registrationCollection.insertOne(registration);
+      res.send(result);
+    });
+
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
   } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
   }
 }
 run().catch(console.dir);
