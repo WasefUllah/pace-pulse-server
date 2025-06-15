@@ -61,6 +61,23 @@ async function run() {
       );
       res.send(result);
     });
+    app.put("/registrations/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const filter = { _id: new ObjectId(id) };
+      const option = { upsert: true };
+      const updatedRegistration = req.body;
+      const updatedDoc = {
+        $set: updatedRegistration,
+      };
+      const result = await registrationCollection.updateOne(
+        filter,
+        updatedDoc,
+        option
+      );
+
+      res.send(result);
+    });
 
     app.patch("/marathon/increment/:id", async (req, res) => {
       const id = req.params.id;
@@ -97,6 +114,24 @@ async function run() {
     app.post("/registrations", async (req, res) => {
       const registration = req.body;
       const result = await registrationCollection.insertOne(registration);
+      res.send(result);
+    });
+    app.get("/registrations/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = {
+        _id: new ObjectId(id),
+      };
+      const result = await registrationCollection.findOne(query);
+      console.log(result);
+      res.send(result);
+    });
+
+    app.get("/applied", async (req, res) => {
+      const email = req.query.email;
+      const query = {
+        userEmail: email,
+      };
+      const result = await registrationCollection.find(query).toArray();
       res.send(result);
     });
 
