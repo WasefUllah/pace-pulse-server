@@ -2,11 +2,42 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const app = express();
+
+var admin = require("firebase-admin");
+
+var serviceAccount = require("./pace-pulse-firebase-adminsdk-fbsvc-f59383894c.json");
+
 const port = process.env.PORT || 3000;
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
 // middleware
 app.use(cors());
 app.use(express.json());
+
+// custom middleware
+const verifyAccessToken = async (req, res, next) => {
+  const token = req.headers.authorization.split("Bearer ")[1];
+  // console.log(token);
+
+  try {
+    const decoded = await admin.auth().verifyIdToken(token);
+    req.decoded = decoded;
+    next();
+  } catch (error) {
+    console.log(error);
+
+    res.status(401).send({ message: "unauthorized access" });
+  }
+};
+
+const verifyAccessEmail = async (req, res, next) => {
+  if (req.query.email !== req.decoded.email) {
+    return res.status(403).send({ message: "forbidden access" });
+  }
+  next();
+};
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.vpmsoqw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -35,14 +66,26 @@ async function run() {
         .toArray();
       res.send(marathons);
     });
-    app.get("/allmarathons", async (req, res) => {
-      let query = {};
-      if (req.query.email) {
-        query = {
-          createdBy: req.query.email,
-        };
+    app.get(
+      "/allmarathons",
+      verifyAccessToken,
+      verifyAccessEmail,
+      async (req, res) => {
+        let query = {};
+        // console.log(req.headers);
+
+        if (req.query.email) {
+          query = {
+            createdBy: req.query.email,
+          };
+        }
+        const result = await marathonCollection.find(query).toArray();
+        res.send(result);
       }
-      const result = await marathonCollection.find(query).toArray();
+    );
+
+    app.get("/allmarathonswithoutemail", async (req, res) => {
+      const result = await marathonCollection.find().toArray();
       res.send(result);
     });
 
@@ -87,12 +130,30 @@ async function run() {
       );
       res.send(result);
     });
+    app.patch("/marathon/decrement/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+
+      const result = await marathonCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $inc: { regCount: -1 } }
+      );
+      console.log(result);
+
+      res.send(result);
+    });
 
     app.delete("/allmarathons/:id", async (req, res) => {
       const id = req.params.id;
+
       const query = { _id: new ObjectId(id) };
       const result = await marathonCollection.deleteOne(query);
-      console.log(result);
+      res.send(result);
+    });
+    app.delete("/registrations/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await registrationCollection.deleteOne(query);
       res.send(result);
     });
 
@@ -122,38 +183,47 @@ async function run() {
         _id: new ObjectId(id),
       };
       const result = await registrationCollection.findOne(query);
-      console.log(result);
       res.send(result);
     });
 
-    app.get("/applied", async (req, res) => {
-      const email = req.query.email;
-      const query = {
-        userEmail: email,
-      };
-      const result = await registrationCollection.find(query).toArray();
-      res.send(result);
-    });
-
-    app.get("/aggrigate", async (req, res) => {
-      const email = req.query.email;
-      const query = {
-        userEmail: email,
-      };
-      const result = await registrationCollection.find(query).toArray();
-      const marathonIds = result.map((reg) => reg.marathonId);
-      const marathons = [];
-      for (let index = 0; index < marathonIds.length; index++) {
-        const id = marathonIds[index]; // corrected variable name
-        const single = await marathonCollection.findOne({
-          _id: new ObjectId(id),
-        });
-        if (single) {
-          marathons.push(single);
-        }
+    app.get(
+      "/applied",
+      verifyAccessToken,
+      verifyAccessEmail,
+      async (req, res) => {
+        const email = req.query.email;
+        const query = {
+          userEmail: email,
+        };
+        const result = await registrationCollection.find(query).toArray();
+        res.send(result);
       }
-      res.send(marathons);
-    });
+    );
+
+    app.get(
+      "/aggrigate",
+      verifyAccessToken,
+      verifyAccessEmail,
+      async (req, res) => {
+        const email = req.query.email;
+        const query = {
+          userEmail: email,
+        };
+        const result = await registrationCollection.find(query).toArray();
+        const marathonIds = result.map((reg) => reg.marathonId);
+        const marathons = [];
+        for (let index = 0; index < marathonIds.length; index++) {
+          const id = marathonIds[index]; // corrected variable name
+          const single = await marathonCollection.findOne({
+            _id: new ObjectId(id),
+          });
+          if (single) {
+            marathons.push(single);
+          }
+        }
+        res.send(marathons);
+      }
+    );
 
     await client.db("admin").command({ ping: 1 });
     console.log(
