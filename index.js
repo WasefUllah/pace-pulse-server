@@ -19,11 +19,11 @@ app.use(express.json());
 // custom middleware
 const verifyAccessToken = async (req, res, next) => {
   const token = req.headers.authorization.split("Bearer ")[1];
-  // console.log(token);
 
   try {
     const decoded = await admin.auth().verifyIdToken(token);
     req.decoded = decoded;
+
     next();
   } catch (error) {
     console.log(error);
@@ -60,10 +60,30 @@ async function run() {
     const marathonCollection = database.collection("marathons");
     const registrationCollection = database.collection("registration");
 
-    app.get("/upcomingmarathon", async (req, res) => {
+    app.get("/featuredmarathon", async (req, res) => {
       const marathons = await marathonCollection
         .aggregate([{ $sample: { size: 6 } }])
         .toArray();
+      res.send(marathons);
+    });
+    app.get("/upcomingmarathon", async (req, res) => {
+      const now = new Date();
+
+      const marathons = await marathonCollection
+        .aggregate([
+          {
+            $match: {
+              $expr: {
+                $gt: [{ $toDate: "$endRegDate" }, now],
+              },
+            },
+          },
+          {
+            $sample: { size: 6 },
+          },
+        ])
+        .toArray();
+
       res.send(marathons);
     });
     app.get(
@@ -201,7 +221,7 @@ async function run() {
     );
 
     app.get(
-      "/aggrigate",
+      "/aggregate",
       verifyAccessToken,
       verifyAccessEmail,
       async (req, res) => {
@@ -213,10 +233,11 @@ async function run() {
         const marathonIds = result.map((reg) => reg.marathonId);
         const marathons = [];
         for (let index = 0; index < marathonIds.length; index++) {
-          const id = marathonIds[index]; // corrected variable name
-          const single = await marathonCollection.findOne({
-            _id: new ObjectId(id),
-          });
+          const id = marathonIds[index];
+          const query = {
+            _id: new ObjectId(marathonIds[index]),
+          };
+          const single = await marathonCollection.findOne(query);
           if (single) {
             marathons.push(single);
           }
