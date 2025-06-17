@@ -158,7 +158,6 @@ async function run() {
         { _id: new ObjectId(id) },
         { $inc: { regCount: -1 } }
       );
-      console.log(result);
 
       res.send(result);
     });
@@ -170,6 +169,7 @@ async function run() {
       const result = await marathonCollection.deleteOne(query);
       res.send(result);
     });
+
     app.delete("/registrations/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -197,6 +197,7 @@ async function run() {
       const result = await registrationCollection.insertOne(registration);
       res.send(result);
     });
+
     app.get("/registrations/:id", async (req, res) => {
       const id = req.params.id;
       const query = {
@@ -233,7 +234,6 @@ async function run() {
         const marathonIds = result.map((reg) => reg.marathonId);
         const marathons = [];
         for (let index = 0; index < marathonIds.length; index++) {
-          const id = marathonIds[index];
           const query = {
             _id: new ObjectId(marathonIds[index]),
           };
@@ -246,10 +246,25 @@ async function run() {
       }
     );
 
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // app.get("/search", async (req, res) => {
+    //   console.log(req.query.title);
+    //   const payload = req.query.title;
+    //   const query = {
+    //     dt_name: { $regex: "^" + payload.toString() + "$" },
+    //   };
+      
+    //   const result = await registrationCollection.find(query).limit(10).toArray();
+      
+    //   console.log(query);
+      
+    //   console.log(result);
+      
+    // });
+
+    // await client.db("admin").command({ ping: 1 });
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
   }
 }
