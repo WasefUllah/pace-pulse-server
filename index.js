@@ -14,6 +14,12 @@ admin.initializeApp({
 
 // middleware
 app.use(cors());
+app.use(
+  cors({
+    origin: ["https://pace-pulse.web.app"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // custom middleware
@@ -92,7 +98,6 @@ async function run() {
       verifyAccessEmail,
       async (req, res) => {
         let query = {};
-        // console.log(req.headers);
 
         if (req.query.email) {
           query = {
@@ -152,7 +157,6 @@ async function run() {
     });
     app.patch("/marathon/decrement/:id", async (req, res) => {
       const id = req.params.id;
-      console.log(id);
 
       const result = await marathonCollection.updateOne(
         { _id: new ObjectId(id) },
@@ -246,25 +250,7 @@ async function run() {
       }
     );
 
-    // app.get("/search", async (req, res) => {
-    //   console.log(req.query.title);
-    //   const payload = req.query.title;
-    //   const query = {
-    //     dt_name: { $regex: "^" + payload.toString() + "$" },
-    //   };
-      
-    //   const result = await registrationCollection.find(query).limit(10).toArray();
-      
-    //   console.log(query);
-      
-    //   console.log(result);
-      
-    // });
-
-    // await client.db("admin").command({ ping: 1 });
-    // console.log(
-    //   "Pinged your deployment. You successfully connected to MongoDB!"
-    // );
+    
   } finally {
   }
 }

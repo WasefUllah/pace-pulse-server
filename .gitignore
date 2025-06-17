@@ -1,3 +1,4 @@
 node_modules
 .env
+.vercel
 pace-pulse-firebase-adminsdk-fbsvc-f59383894c.json
