@@ -110,8 +110,26 @@ async function run() {
     );
 
     app.get("/allmarathonswithoutemail", async (req, res) => {
-      const result = await marathonCollection.find().toArray();
-      res.send(result);
+
+      if (req.query.sortOption == "registration") {
+        const result = await marathonCollection
+          .find()
+          .sort({ startRegDate: 1 })
+          .toArray();
+        res.send(result);
+      } else if (req.query.sortOption == "marathon") {
+        const result = await marathonCollection
+          .find()
+          .sort({ marathonStartDate: 1 })
+          .toArray();
+        res.send(result);
+      } else {
+        const result = await marathonCollection
+          .find()
+
+          .toArray();
+        res.send(result);
+      }
     });
 
     app.put("/marathon/:id", async (req, res) => {
