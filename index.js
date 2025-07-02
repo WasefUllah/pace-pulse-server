@@ -249,8 +249,6 @@ async function run() {
         res.send(marathons);
       }
     );
-
-    
   } finally {
   }
 }
